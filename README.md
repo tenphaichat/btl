@@ -7,7 +7,10 @@
 - **Trường:** Đại học Công nghệ Đông Á (EAUT) – Khoa Công nghệ Thông tin
 - **Học phần:** Lập trình .NET – Lớp tín chỉ: `LTN.03 (IT3212)`
 - **Giảng viên hướng dẫn:** ThS. Trần Nguyên Hoàng
-- **Nhóm thực hiện:** Nhóm 20 – Nhóm trưởng: **Phan Văn Thắng** (`24002545` – Lớp `DCCNTT15.10`)
+- **Nhóm thực hiện:** Nhóm 2 – Đề tài 20:
+  1. **Phan Văn Thắng** – MSSV: `24002545` (Nhóm Trưởng – Lớp `DCCNTT15.10`)
+  2. **Võ Văn Cường** – MSSV: `24003135` (Thành viên – Lớp `DCCNTT15.10`)
+  3. **Nguyễn Quang Dũng** – MSSV: `24003351` (Thành viên – Lớp `DCCNTT15.10`)
 - **Nền tảng công nghệ:** C# Windows Forms (`.NET 9.0`) + Microsoft SQL Server (`(localdb)\MSSQLLocalDB` / SQL Server Express / Developer)
 - **Kiến trúc phần mềm:** Kiến trúc phân tầng 3 lớp (**3-Tier Architecture**: `GUI` – `BUS` – `DAL` + `DTO` kế thừa đa cấp + `Utils` Class Methods)
 
