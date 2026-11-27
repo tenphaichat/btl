@@ -1,0 +1,79 @@
+<?xml version="1.0" standalone="yes"?>
+<BaoCao>
+  <xs:schema id="BaoCao" xmlns="" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xs:element name="BaoCao" msdata:IsDataSet="true" msdata:UseCurrentLocale="true">
+      <xs:complexType>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element name="SachBanChay">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="MaSach" type="xs:string" minOccurs="0" />
+                <xs:element name="TenSach" type="xs:string" minOccurs="0" />
+                <xs:element name="TheLoai" type="xs:string" minOccurs="0" />
+                <xs:element name="TacGia" type="xs:string" minOccurs="0" />
+                <xs:element name="SoLuongBan" type="xs:int" minOccurs="0" />
+                <xs:element name="DoanhThu" type="xs:decimal" minOccurs="0" />
+                <xs:element name="SoHoaDon" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="ThamSo">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="Ten" type="xs:string" minOccurs="0" />
+                <xs:element name="GiaTri" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+        </xs:choice>
+      </xs:complexType>
+    </xs:element>
+  </xs:schema>
+  <SachBanChay>
+    <MaSach>S008</MaSach>
+    <TenSach>Clean Code</TenSach>
+    <TheLoai>Công nghệ thông tin</TheLoai>
+    <TacGia>Robert C. Martin</TacGia>
+    <SoLuongBan>18</SoLuongBan>
+    <DoanhThu>6300000</DoanhThu>
+    <SoHoaDon>9</SoHoaDon>
+  </SachBanChay>
+  <SachBanChay>
+    <MaSach>S007</MaSach>
+    <TenSach>Đắc nhân tâm</TenSach>
+    <TheLoai>Kỹ năng sống</TheLoai>
+    <TacGia>Dale Carnegie</TacGia>
+    <SoLuongBan>16</SoLuongBan>
+    <DoanhThu>2048000</DoanhThu>
+    <SoHoaDon>11</SoHoaDon>
+  </SachBanChay>
+  <SachBanChay>
+    <MaSach>S001</MaSach>
+    <TenSach>Mắt biếc</TenSach>
+    <TheLoai>Văn học Việt Nam</TheLoai>
+    <TacGia>Nguyễn Nhật Ánh</TacGia>
+    <SoLuongBan>14</SoLuongBan>
+    <DoanhThu>1540000</DoanhThu>
+    <SoHoaDon>8</SoHoaDon>
+  </SachBanChay>
+  <ThamSo>
+    <Ten>pTieuDe</Ten>
+    <GiaTri>BÁO CÁO SÁCH BÁN CHẠY</GiaTri>
+  </ThamSo>
+  <ThamSo>
+    <Ten>pTuNgay</Ten>
+    <GiaTri>01/01/2026</GiaTri>
+  </ThamSo>
+  <ThamSo>
+    <Ten>pDenNgay</Ten>
+    <GiaTri>31/12/2026</GiaTri>
+  </ThamSo>
+  <ThamSo>
+    <Ten>pNguoiLap</Ten>
+    <GiaTri>Phan Văn Thắng</GiaTri>
+  </ThamSo>
+  <ThamSo>
+    <Ten>pNgayLap</Ten>
+    <GiaTri>20/11/2026 09:30</GiaTri>
+  </ThamSo>
+</BaoCao>

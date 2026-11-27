@@ -1,0 +1,22 @@
+<?xml version="1.0" standalone="yes"?>
+<xs:schema id="BaoCao" xmlns="" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+  <xs:element name="BaoCao" msdata:IsDataSet="true" msdata:UseCurrentLocale="true">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="SachBanChay">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="MaSach" type="xs:string" minOccurs="0" />
+              <xs:element name="TenSach" type="xs:string" minOccurs="0" />
+              <xs:element name="TheLoai" type="xs:string" minOccurs="0" />
+              <xs:element name="TacGia" type="xs:string" minOccurs="0" />
+              <xs:element name="SoLuongBan" type="xs:int" minOccurs="0" />
+              <xs:element name="DoanhThu" type="xs:decimal" minOccurs="0" />
+              <xs:element name="SoHoaDon" type="xs:int" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

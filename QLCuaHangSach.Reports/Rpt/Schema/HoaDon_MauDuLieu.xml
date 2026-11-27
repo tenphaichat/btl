@@ -1,0 +1,95 @@
+<?xml version="1.0" standalone="yes"?>
+<BaoCao>
+  <xs:schema id="BaoCao" xmlns="" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xs:element name="BaoCao" msdata:IsDataSet="true" msdata:UseCurrentLocale="true">
+      <xs:complexType>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element name="HoaDonChiTiet">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="MaHD" type="xs:string" minOccurs="0" />
+                <xs:element name="NgayLap" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="NhanVien" type="xs:string" minOccurs="0" />
+                <xs:element name="KhachHang" type="xs:string" minOccurs="0" />
+                <xs:element name="TongTien" type="xs:decimal" minOccurs="0" />
+                <xs:element name="GiamGia" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ThanhToan" type="xs:decimal" minOccurs="0" />
+                <xs:element name="STT" type="xs:int" minOccurs="0" />
+                <xs:element name="MaSach" type="xs:string" minOccurs="0" />
+                <xs:element name="TenSach" type="xs:string" minOccurs="0" />
+                <xs:element name="SoLuong" type="xs:int" minOccurs="0" />
+                <xs:element name="DonGia" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ThanhTien" type="xs:decimal" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="ThamSo">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="Ten" type="xs:string" minOccurs="0" />
+                <xs:element name="GiaTri" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+        </xs:choice>
+      </xs:complexType>
+    </xs:element>
+  </xs:schema>
+  <HoaDonChiTiet>
+    <MaHD>HD0076</MaHD>
+    <NgayLap>2026-11-20T09:30:00+00:00</NgayLap>
+    <NhanVien>Nguyễn Thị Lan</NhanVien>
+    <KhachHang>Nguyễn Văn An</KhachHang>
+    <TongTien>1210000</TongTien>
+    <GiamGia>84000</GiamGia>
+    <ThanhToan>1126000</ThanhToan>
+    <STT>1</STT>
+    <MaSach>S001</MaSach>
+    <TenSach>Mắt biếc</TenSach>
+    <SoLuong>2</SoLuong>
+    <DonGia>110000</DonGia>
+    <ThanhTien>220000</ThanhTien>
+  </HoaDonChiTiet>
+  <HoaDonChiTiet>
+    <MaHD>HD0076</MaHD>
+    <NgayLap>2026-11-20T09:30:00+00:00</NgayLap>
+    <NhanVien>Nguyễn Thị Lan</NhanVien>
+    <KhachHang>Nguyễn Văn An</KhachHang>
+    <TongTien>1210000</TongTien>
+    <GiamGia>84000</GiamGia>
+    <ThanhToan>1126000</ThanhToan>
+    <STT>2</STT>
+    <MaSach>S008</MaSach>
+    <TenSach>Clean Code</TenSach>
+    <SoLuong>1</SoLuong>
+    <DonGia>350000</DonGia>
+    <ThanhTien>350000</ThanhTien>
+  </HoaDonChiTiet>
+  <HoaDonChiTiet>
+    <MaHD>HD0076</MaHD>
+    <NgayLap>2026-11-20T09:30:00+00:00</NgayLap>
+    <NhanVien>Nguyễn Thị Lan</NhanVien>
+    <KhachHang>Nguyễn Văn An</KhachHang>
+    <TongTien>1210000</TongTien>
+    <GiamGia>84000</GiamGia>
+    <ThanhToan>1126000</ThanhToan>
+    <STT>3</STT>
+    <MaSach>S007</MaSach>
+    <TenSach>Đắc nhân tâm</TenSach>
+    <SoLuong>5</SoLuong>
+    <DonGia>128000</DonGia>
+    <ThanhTien>640000</ThanhTien>
+  </HoaDonChiTiet>
+  <ThamSo>
+    <Ten>pTieuDe</Ten>
+    <GiaTri>HÓA ĐƠN BÁN HÀNG</GiaTri>
+  </ThamSo>
+  <ThamSo>
+    <Ten>pNguoiLap</Ten>
+    <GiaTri>Nguyễn Thị Lan</GiaTri>
+  </ThamSo>
+  <ThamSo>
+    <Ten>pNgayLap</Ten>
+    <GiaTri>20/11/2026 09:30</GiaTri>
+  </ThamSo>
+</BaoCao>

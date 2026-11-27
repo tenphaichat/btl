@@ -1,5 +1,10 @@
-﻿bin/
+bin/
 obj/
 .vs/
 *.user
-NopBai_GoogleForm/
+*.suo
+Logs/
+*.mdf
+*.ldf
+# Báo cáo Crystal: giữ file .rpt, bỏ file tạm
+Rpt/*.tmp

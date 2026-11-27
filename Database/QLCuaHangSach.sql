@@ -1,4 +1,4 @@
-/* =====================================================================
+﻿/* =====================================================================
    BÀI TẬP LỚN - HỌC PHẦN LẬP TRÌNH .NET (EAUT)
    Đề tài 20: Xây dựng phần mềm quản lý cửa hàng sách bằng công nghệ .NET
    Script tạo CSDL QLCuaHangSach: bảng, ràng buộc, trigger, stored procedure,
@@ -288,6 +288,423 @@ BEGIN
       (SELECT ISNULL(SUM(SoLuongTon), 0) FROM Sach WHERE TrangThai = 1) AS TongTonKho,
       (SELECT COUNT(*) FROM KhachHang) AS SoKhachHang,
       (SELECT COUNT(*) FROM Sach WHERE TrangThai = 1 AND SoLuongTon <= 10) AS SoSachSapHet;
+END
+GO
+
+/* ===== 3B. NHẬT KÝ NGƯỜI DÙNG (AuditLog) + HIỆU NĂNG NGHIỆP VỤ ===== */
+CREATE TABLE AuditLog (
+    MaLog        BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    ThoiGian     DATETIME      NOT NULL DEFAULT GETDATE(),
+    MaNV         VARCHAR(10)   NULL,
+    TenDangNhap  VARCHAR(50)   NULL,
+    HanhDong     VARCHAR(40)   NOT NULL,          -- ví dụ: DANG_NHAP, THANH_TOAN, NHAP_KHO, THEM_SACH...
+    DoiTuong     NVARCHAR(100) NULL,              -- mã đối tượng bị tác động (HD0001, S005...)
+    ChiTiet      NVARCHAR(500) NULL,
+    ThoiGianMs   INT           NULL,              -- thời gian xử lý nghiệp vụ (mili-giây), dùng thống kê hiệu năng
+    ThanhCong    BIT           NOT NULL DEFAULT 1
+);
+CREATE INDEX IX_AuditLog_ThoiGian ON AuditLog(ThoiGian DESC);
+GO
+
+CREATE OR ALTER PROCEDURE sp_AuditLog_Ghi
+    @MaNV VARCHAR(10) = NULL, @TenDangNhap VARCHAR(50) = NULL, @HanhDong VARCHAR(40),
+    @DoiTuong NVARCHAR(100) = NULL, @ChiTiet NVARCHAR(500) = NULL,
+    @ThoiGianMs INT = NULL, @ThanhCong BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO AuditLog(MaNV, TenDangNhap, HanhDong, DoiTuong, ChiTiet, ThoiGianMs, ThanhCong)
+    VALUES(@MaNV, @TenDangNhap, @HanhDong, @DoiTuong, LEFT(@ChiTiet, 500), @ThoiGianMs, @ThanhCong);
+END
+GO
+
+CREATE OR ALTER PROCEDURE sp_AuditLog_TimKiem
+    @TuNgay DATE = NULL, @DenNgay DATE = NULL, @TenDangNhap VARCHAR(50) = NULL, @Top INT = 500
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT TOP (@Top) MaLog, ThoiGian, TenDangNhap, HanhDong, DoiTuong, ChiTiet, ThoiGianMs,
+           CASE WHEN ThanhCong = 1 THEN N'Thành công' ELSE N'Thất bại' END AS KetQua
+    FROM AuditLog
+    WHERE (@TuNgay IS NULL OR ThoiGian >= @TuNgay)
+      AND (@DenNgay IS NULL OR ThoiGian < DATEADD(DAY, 1, @DenNgay))
+      AND (@TenDangNhap IS NULL OR @TenDangNhap = '' OR TenDangNhap LIKE '%' + @TenDangNhap + '%')
+    ORDER BY ThoiGian DESC, MaLog DESC;
+END
+GO
+
+-- Thống kê hiệu năng nghiệp vụ: số lần, thời gian trung bình / nhanh nhất / chậm nhất, số lần thất bại
+CREATE OR ALTER PROCEDURE sp_AuditLog_HieuNang
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT HanhDong,
+           COUNT(*)                                   AS SoLanThucHien,
+           CAST(AVG(CAST(ThoiGianMs AS FLOAT)) AS DECIMAL(10,1)) AS TrungBinhMs,
+           MIN(ThoiGianMs)                            AS NhanhNhatMs,
+           MAX(ThoiGianMs)                            AS ChamNhatMs,
+           SUM(CASE WHEN ThanhCong = 0 THEN 1 ELSE 0 END) AS SoLanThatBai
+    FROM AuditLog
+    WHERE ThoiGianMs IS NOT NULL
+    GROUP BY HanhDong
+    ORDER BY SoLanThucHien DESC;
+END
+GO
+
+/* ===== 3C. STORED PROCEDURE CRUD (Lab 11) =====
+   Mỗi thực thể có đủ: GetAll / GetById / Insert / Update / Delete.
+   Lỗi nghiệp vụ dùng THROW 5000x để DAL dịch thành thông báo tiếng Việt. */
+
+-- ---- NhanVien ----
+CREATE OR ALTER PROCEDURE sp_NhanVien_GetAll
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT MaNV, HoTen, CASE WHEN GioiTinh = 1 THEN N'Nam' ELSE N'Nữ' END AS GioiTinh,
+           NgaySinh, SoDienThoai, Email, DiaChi, TenDangNhap, VaiTro, TrangThai
+    FROM NhanVien ORDER BY MaNV;
+END
+GO
+CREATE OR ALTER PROCEDURE sp_NhanVien_GetById @MaNV VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT * FROM NhanVien WHERE MaNV = @MaNV;
+END
+GO
+CREATE OR ALTER PROCEDURE sp_NhanVien_DangNhap @TenDangNhap VARCHAR(50), @MatKhauHash VARCHAR(64)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT TOP 1 * FROM NhanVien WHERE TenDangNhap = @TenDangNhap AND MatKhauHash = @MatKhauHash AND TrangThai = 1;
+END
+GO
+CREATE OR ALTER PROCEDURE sp_NhanVien_Insert
+    @MaNV VARCHAR(10), @HoTen NVARCHAR(100), @GioiTinh BIT, @NgaySinh DATE = NULL,
+    @SoDienThoai VARCHAR(15) = NULL, @Email VARCHAR(100) = NULL, @DiaChi NVARCHAR(200) = NULL,
+    @TenDangNhap VARCHAR(50), @MatKhauHash VARCHAR(64), @VaiTro NVARCHAR(20), @TrangThai BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM NhanVien WHERE MaNV = @MaNV) THROW 50001, N'Mã nhân viên đã tồn tại.', 1;
+    IF EXISTS (SELECT 1 FROM NhanVien WHERE TenDangNhap = @TenDangNhap) THROW 50001, N'Tên đăng nhập đã tồn tại.', 1;
+    INSERT INTO NhanVien(MaNV, HoTen, GioiTinh, NgaySinh, SoDienThoai, Email, DiaChi, TenDangNhap, MatKhauHash, VaiTro, TrangThai)
+    VALUES(@MaNV, @HoTen, @GioiTinh, @NgaySinh, @SoDienThoai, @Email, @DiaChi, @TenDangNhap, @MatKhauHash, @VaiTro, @TrangThai);
+END
+GO
+CREATE OR ALTER PROCEDURE sp_NhanVien_Update
+    @MaNV VARCHAR(10), @HoTen NVARCHAR(100), @GioiTinh BIT, @NgaySinh DATE = NULL,
+    @SoDienThoai VARCHAR(15) = NULL, @Email VARCHAR(100) = NULL, @DiaChi NVARCHAR(200) = NULL,
+    @VaiTro NVARCHAR(20), @TrangThai BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE NhanVien SET HoTen=@HoTen, GioiTinh=@GioiTinh, NgaySinh=@NgaySinh, SoDienThoai=@SoDienThoai,
+           Email=@Email, DiaChi=@DiaChi, VaiTro=@VaiTro, TrangThai=@TrangThai
+    WHERE MaNV = @MaNV;
+    IF @@ROWCOUNT = 0 THROW 50002, N'Không tìm thấy nhân viên.', 1;
+END
+GO
+-- "Xóa" nhân viên = khóa tài khoản (giữ lại để không mất lịch sử hóa đơn/phiếu nhập)
+CREATE OR ALTER PROCEDURE sp_NhanVien_Delete @MaNV VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE NhanVien SET TrangThai = 0 WHERE MaNV = @MaNV;
+    IF @@ROWCOUNT = 0 THROW 50002, N'Không tìm thấy nhân viên.', 1;
+END
+GO
+
+-- ---- KhachHang ----
+CREATE OR ALTER PROCEDURE sp_KhachHang_GetAll @TuKhoa NVARCHAR(100) = N''
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT MaKH, HoTen, CASE WHEN GioiTinh = 1 THEN N'Nam' ELSE N'Nữ' END AS GioiTinh,
+           NgaySinh, SoDienThoai, Email, DiaChi, DiemTichLuy, NgayDangKy
+    FROM KhachHang
+    WHERE @TuKhoa = N'' OR HoTen LIKE N'%' + @TuKhoa + N'%' OR SoDienThoai LIKE '%' + @TuKhoa + '%' OR MaKH LIKE '%' + @TuKhoa + '%'
+    ORDER BY MaKH;
+END
+GO
+CREATE OR ALTER PROCEDURE sp_KhachHang_GetById @MaKH VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT * FROM KhachHang WHERE MaKH = @MaKH;
+END
+GO
+CREATE OR ALTER PROCEDURE sp_KhachHang_Insert
+    @MaKH VARCHAR(10), @HoTen NVARCHAR(100), @GioiTinh BIT, @NgaySinh DATE = NULL,
+    @SoDienThoai VARCHAR(15), @Email VARCHAR(100) = NULL, @DiaChi NVARCHAR(200) = NULL, @DiemTichLuy INT = 0
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM KhachHang WHERE MaKH = @MaKH) THROW 50001, N'Mã khách hàng đã tồn tại.', 1;
+    IF EXISTS (SELECT 1 FROM KhachHang WHERE SoDienThoai = @SoDienThoai) THROW 50001, N'Số điện thoại này đã được đăng ký cho khách hàng khác.', 1;
+    INSERT INTO KhachHang(MaKH, HoTen, GioiTinh, NgaySinh, SoDienThoai, Email, DiaChi, DiemTichLuy)
+    VALUES(@MaKH, @HoTen, @GioiTinh, @NgaySinh, @SoDienThoai, @Email, @DiaChi, @DiemTichLuy);
+END
+GO
+CREATE OR ALTER PROCEDURE sp_KhachHang_Update
+    @MaKH VARCHAR(10), @HoTen NVARCHAR(100), @GioiTinh BIT, @NgaySinh DATE = NULL,
+    @SoDienThoai VARCHAR(15), @Email VARCHAR(100) = NULL, @DiaChi NVARCHAR(200) = NULL, @DiemTichLuy INT = 0
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM KhachHang WHERE SoDienThoai = @SoDienThoai AND MaKH <> @MaKH)
+        THROW 50001, N'Số điện thoại này đã được đăng ký cho khách hàng khác.', 1;
+    UPDATE KhachHang SET HoTen=@HoTen, GioiTinh=@GioiTinh, NgaySinh=@NgaySinh, SoDienThoai=@SoDienThoai,
+           Email=@Email, DiaChi=@DiaChi, DiemTichLuy=@DiemTichLuy
+    WHERE MaKH = @MaKH;
+    IF @@ROWCOUNT = 0 THROW 50002, N'Không tìm thấy khách hàng.', 1;
+END
+GO
+CREATE OR ALTER PROCEDURE sp_KhachHang_Delete @MaKH VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM HoaDon WHERE MaKH = @MaKH)
+        THROW 50003, N'Khách hàng đã có hóa đơn nên không thể xóa.', 1;
+    DELETE FROM KhachHang WHERE MaKH = @MaKH;
+    IF @@ROWCOUNT = 0 THROW 50002, N'Không tìm thấy khách hàng.', 1;
+END
+GO
+
+-- ---- Sach (tìm kiếm dùng sp_TimKiemSach ở mục 3.6) ----
+CREATE OR ALTER PROCEDURE sp_Sach_GetById @MaSach VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT s.MaSach, s.TenSach, s.MaTL, tl.TenTL, s.MaTG, tg.TenTG, s.MaNXB, nxb.TenNXB,
+           s.NamXuatBan, s.GiaNhap, s.GiaBan, s.SoLuongTon, s.MoTa, s.TrangThai
+    FROM Sach s
+    JOIN TheLoai tl ON tl.MaTL = s.MaTL
+    JOIN TacGia tg ON tg.MaTG = s.MaTG
+    JOIN NhaXuatBan nxb ON nxb.MaNXB = s.MaNXB
+    WHERE s.MaSach = @MaSach;
+END
+GO
+CREATE OR ALTER PROCEDURE sp_Sach_Insert
+    @MaSach VARCHAR(10), @TenSach NVARCHAR(200), @MaTL VARCHAR(10), @MaTG VARCHAR(10), @MaNXB VARCHAR(10),
+    @NamXuatBan INT = NULL, @GiaNhap DECIMAL(18,0), @GiaBan DECIMAL(18,0), @SoLuongTon INT = 0, @MoTa NVARCHAR(500) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM Sach WHERE MaSach = @MaSach) THROW 50001, N'Mã sách đã tồn tại.', 1;
+    INSERT INTO Sach(MaSach, TenSach, MaTL, MaTG, MaNXB, NamXuatBan, GiaNhap, GiaBan, SoLuongTon, MoTa, TrangThai)
+    VALUES(@MaSach, @TenSach, @MaTL, @MaTG, @MaNXB, @NamXuatBan, @GiaNhap, @GiaBan, @SoLuongTon, @MoTa, 1);
+END
+GO
+CREATE OR ALTER PROCEDURE sp_Sach_Update
+    @MaSach VARCHAR(10), @TenSach NVARCHAR(200), @MaTL VARCHAR(10), @MaTG VARCHAR(10), @MaNXB VARCHAR(10),
+    @NamXuatBan INT = NULL, @GiaNhap DECIMAL(18,0), @GiaBan DECIMAL(18,0), @SoLuongTon INT, @MoTa NVARCHAR(500) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE Sach SET TenSach=@TenSach, MaTL=@MaTL, MaTG=@MaTG, MaNXB=@MaNXB, NamXuatBan=@NamXuatBan,
+           GiaNhap=@GiaNhap, GiaBan=@GiaBan, SoLuongTon=@SoLuongTon, MoTa=@MoTa
+    WHERE MaSach = @MaSach;
+    IF @@ROWCOUNT = 0 THROW 50002, N'Không tìm thấy sách.', 1;
+END
+GO
+-- "Xóa" sách = ngừng kinh doanh (giữ lại để không mất chi tiết hóa đơn cũ)
+CREATE OR ALTER PROCEDURE sp_Sach_Delete @MaSach VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE Sach SET TrangThai = 0 WHERE MaSach = @MaSach;
+    IF @@ROWCOUNT = 0 THROW 50002, N'Không tìm thấy sách.', 1;
+END
+GO
+
+-- ---- Sach: tìm kiếm đa tiêu chí + sắp xếp + phân trang (Lab 8-9) ----
+-- @TongSo là tham số OUTPUT: tổng số dòng khớp điều kiện (để tính số trang).
+-- Sắp xếp dùng danh sách cột hợp lệ (CASE), KHÔNG ghép tên cột từ người dùng vào câu SQL.
+CREATE OR ALTER PROCEDURE sp_Sach_PhanTrang
+    @TuKhoa NVARCHAR(200) = N'', @MaTL VARCHAR(10) = NULL,
+    @GiaTu DECIMAL(18,0) = NULL, @GiaDen DECIMAL(18,0) = NULL,
+    @SapXep VARCHAR(20) = 'MaSach', @GiamDan BIT = 0,
+    @Offset INT = 0, @PageSize INT = 10,
+    @TongSo INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT @TongSo = COUNT(*)
+    FROM Sach s
+    JOIN TacGia tg ON tg.MaTG = s.MaTG
+    WHERE (@TuKhoa = N'' OR s.TenSach LIKE N'%' + @TuKhoa + N'%' OR tg.TenTG LIKE N'%' + @TuKhoa + N'%'
+           OR s.MaSach LIKE '%' + @TuKhoa + '%')
+      AND (@MaTL IS NULL OR s.MaTL = @MaTL)
+      AND (@GiaTu IS NULL OR s.GiaBan >= @GiaTu)
+      AND (@GiaDen IS NULL OR s.GiaBan <= @GiaDen);
+
+    SELECT s.MaSach, s.TenSach, s.MaTL, tl.TenTL, s.MaTG, tg.TenTG, s.MaNXB, nxb.TenNXB,
+           s.NamXuatBan, s.GiaNhap, s.GiaBan, s.SoLuongTon, s.MoTa, s.TrangThai
+    FROM Sach s
+    JOIN TheLoai tl ON tl.MaTL = s.MaTL
+    JOIN TacGia tg ON tg.MaTG = s.MaTG
+    JOIN NhaXuatBan nxb ON nxb.MaNXB = s.MaNXB
+    WHERE (@TuKhoa = N'' OR s.TenSach LIKE N'%' + @TuKhoa + N'%' OR tg.TenTG LIKE N'%' + @TuKhoa + N'%'
+           OR s.MaSach LIKE '%' + @TuKhoa + '%')
+      AND (@MaTL IS NULL OR s.MaTL = @MaTL)
+      AND (@GiaTu IS NULL OR s.GiaBan >= @GiaTu)
+      AND (@GiaDen IS NULL OR s.GiaBan <= @GiaDen)
+    ORDER BY
+        CASE WHEN @SapXep = 'TenSach'    AND @GiamDan = 0 THEN s.TenSach    END ASC,
+        CASE WHEN @SapXep = 'TenSach'    AND @GiamDan = 1 THEN s.TenSach    END DESC,
+        CASE WHEN @SapXep = 'GiaBan'     AND @GiamDan = 0 THEN s.GiaBan     END ASC,
+        CASE WHEN @SapXep = 'GiaBan'     AND @GiamDan = 1 THEN s.GiaBan     END DESC,
+        CASE WHEN @SapXep = 'SoLuongTon' AND @GiamDan = 0 THEN s.SoLuongTon END ASC,
+        CASE WHEN @SapXep = 'SoLuongTon' AND @GiamDan = 1 THEN s.SoLuongTon END DESC,
+        CASE WHEN @SapXep = 'MaSach'     AND @GiamDan = 1 THEN s.MaSach     END DESC,
+        s.MaSach
+    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+END
+GO
+
+-- ---- TheLoai ----
+CREATE OR ALTER PROCEDURE sp_TheLoai_GetAll AS BEGIN SET NOCOUNT ON; SELECT MaTL, TenTL, MoTa FROM TheLoai ORDER BY MaTL; END
+GO
+CREATE OR ALTER PROCEDURE sp_TheLoai_GetById @MaTL VARCHAR(10) AS BEGIN SET NOCOUNT ON; SELECT MaTL, TenTL, MoTa FROM TheLoai WHERE MaTL = @MaTL; END
+GO
+CREATE OR ALTER PROCEDURE sp_TheLoai_Insert @MaTL VARCHAR(10), @TenTL NVARCHAR(100), @MoTa NVARCHAR(255) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM TheLoai WHERE MaTL = @MaTL) THROW 50001, N'Mã thể loại đã tồn tại.', 1;
+    IF EXISTS (SELECT 1 FROM TheLoai WHERE TenTL = @TenTL) THROW 50001, N'Tên thể loại đã tồn tại.', 1;
+    INSERT INTO TheLoai(MaTL, TenTL, MoTa) VALUES(@MaTL, @TenTL, @MoTa);
+END
+GO
+CREATE OR ALTER PROCEDURE sp_TheLoai_Update @MaTL VARCHAR(10), @TenTL NVARCHAR(100), @MoTa NVARCHAR(255) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM TheLoai WHERE TenTL = @TenTL AND MaTL <> @MaTL) THROW 50001, N'Tên thể loại đã tồn tại.', 1;
+    UPDATE TheLoai SET TenTL = @TenTL, MoTa = @MoTa WHERE MaTL = @MaTL;
+    IF @@ROWCOUNT = 0 THROW 50002, N'Không tìm thấy thể loại.', 1;
+END
+GO
+CREATE OR ALTER PROCEDURE sp_TheLoai_Delete @MaTL VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM Sach WHERE MaTL = @MaTL) THROW 50003, N'Thể loại đang có sách nên không thể xóa.', 1;
+    DELETE FROM TheLoai WHERE MaTL = @MaTL;
+    IF @@ROWCOUNT = 0 THROW 50002, N'Không tìm thấy thể loại.', 1;
+END
+GO
+
+-- ---- TacGia ----
+CREATE OR ALTER PROCEDURE sp_TacGia_GetAll AS BEGIN SET NOCOUNT ON; SELECT MaTG, TenTG, QuocTich FROM TacGia ORDER BY MaTG; END
+GO
+CREATE OR ALTER PROCEDURE sp_TacGia_GetById @MaTG VARCHAR(10) AS BEGIN SET NOCOUNT ON; SELECT MaTG, TenTG, QuocTich FROM TacGia WHERE MaTG = @MaTG; END
+GO
+CREATE OR ALTER PROCEDURE sp_TacGia_Insert @MaTG VARCHAR(10), @TenTG NVARCHAR(100), @QuocTich NVARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM TacGia WHERE MaTG = @MaTG) THROW 50001, N'Mã tác giả đã tồn tại.', 1;
+    INSERT INTO TacGia(MaTG, TenTG, QuocTich) VALUES(@MaTG, @TenTG, @QuocTich);
+END
+GO
+CREATE OR ALTER PROCEDURE sp_TacGia_Update @MaTG VARCHAR(10), @TenTG NVARCHAR(100), @QuocTich NVARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE TacGia SET TenTG = @TenTG, QuocTich = @QuocTich WHERE MaTG = @MaTG;
+    IF @@ROWCOUNT = 0 THROW 50002, N'Không tìm thấy tác giả.', 1;
+END
+GO
+CREATE OR ALTER PROCEDURE sp_TacGia_Delete @MaTG VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM Sach WHERE MaTG = @MaTG) THROW 50003, N'Tác giả đang có sách nên không thể xóa.', 1;
+    DELETE FROM TacGia WHERE MaTG = @MaTG;
+    IF @@ROWCOUNT = 0 THROW 50002, N'Không tìm thấy tác giả.', 1;
+END
+GO
+
+-- ---- NhaXuatBan ----
+CREATE OR ALTER PROCEDURE sp_NhaXuatBan_GetAll AS BEGIN SET NOCOUNT ON; SELECT MaNXB, TenNXB, DiaChi FROM NhaXuatBan ORDER BY MaNXB; END
+GO
+CREATE OR ALTER PROCEDURE sp_NhaXuatBan_GetById @MaNXB VARCHAR(10) AS BEGIN SET NOCOUNT ON; SELECT MaNXB, TenNXB, DiaChi FROM NhaXuatBan WHERE MaNXB = @MaNXB; END
+GO
+CREATE OR ALTER PROCEDURE sp_NhaXuatBan_Insert @MaNXB VARCHAR(10), @TenNXB NVARCHAR(150), @DiaChi NVARCHAR(200) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM NhaXuatBan WHERE MaNXB = @MaNXB) THROW 50001, N'Mã nhà xuất bản đã tồn tại.', 1;
+    IF EXISTS (SELECT 1 FROM NhaXuatBan WHERE TenNXB = @TenNXB) THROW 50001, N'Tên nhà xuất bản đã tồn tại.', 1;
+    INSERT INTO NhaXuatBan(MaNXB, TenNXB, DiaChi) VALUES(@MaNXB, @TenNXB, @DiaChi);
+END
+GO
+CREATE OR ALTER PROCEDURE sp_NhaXuatBan_Update @MaNXB VARCHAR(10), @TenNXB NVARCHAR(150), @DiaChi NVARCHAR(200) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM NhaXuatBan WHERE TenNXB = @TenNXB AND MaNXB <> @MaNXB) THROW 50001, N'Tên nhà xuất bản đã tồn tại.', 1;
+    UPDATE NhaXuatBan SET TenNXB = @TenNXB, DiaChi = @DiaChi WHERE MaNXB = @MaNXB;
+    IF @@ROWCOUNT = 0 THROW 50002, N'Không tìm thấy nhà xuất bản.', 1;
+END
+GO
+CREATE OR ALTER PROCEDURE sp_NhaXuatBan_Delete @MaNXB VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM Sach WHERE MaNXB = @MaNXB) THROW 50003, N'Nhà xuất bản đang có sách nên không thể xóa.', 1;
+    DELETE FROM NhaXuatBan WHERE MaNXB = @MaNXB;
+    IF @@ROWCOUNT = 0 THROW 50002, N'Không tìm thấy nhà xuất bản.', 1;
+END
+GO
+
+-- ---- NhaCungCap ----
+CREATE OR ALTER PROCEDURE sp_NhaCungCap_GetAll AS BEGIN SET NOCOUNT ON; SELECT MaNCC, TenNCC, DiaChi, SoDienThoai, Email FROM NhaCungCap ORDER BY MaNCC; END
+GO
+CREATE OR ALTER PROCEDURE sp_NhaCungCap_GetById @MaNCC VARCHAR(10) AS BEGIN SET NOCOUNT ON; SELECT MaNCC, TenNCC, DiaChi, SoDienThoai, Email FROM NhaCungCap WHERE MaNCC = @MaNCC; END
+GO
+CREATE OR ALTER PROCEDURE sp_NhaCungCap_Insert
+    @MaNCC VARCHAR(10), @TenNCC NVARCHAR(150), @DiaChi NVARCHAR(200) = NULL, @SoDienThoai VARCHAR(15) = NULL, @Email VARCHAR(100) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM NhaCungCap WHERE MaNCC = @MaNCC) THROW 50001, N'Mã nhà cung cấp đã tồn tại.', 1;
+    INSERT INTO NhaCungCap(MaNCC, TenNCC, DiaChi, SoDienThoai, Email) VALUES(@MaNCC, @TenNCC, @DiaChi, @SoDienThoai, @Email);
+END
+GO
+CREATE OR ALTER PROCEDURE sp_NhaCungCap_Update
+    @MaNCC VARCHAR(10), @TenNCC NVARCHAR(150), @DiaChi NVARCHAR(200) = NULL, @SoDienThoai VARCHAR(15) = NULL, @Email VARCHAR(100) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE NhaCungCap SET TenNCC = @TenNCC, DiaChi = @DiaChi, SoDienThoai = @SoDienThoai, Email = @Email WHERE MaNCC = @MaNCC;
+    IF @@ROWCOUNT = 0 THROW 50002, N'Không tìm thấy nhà cung cấp.', 1;
+END
+GO
+CREATE OR ALTER PROCEDURE sp_NhaCungCap_Delete @MaNCC VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM PhieuNhap WHERE MaNCC = @MaNCC) THROW 50003, N'Nhà cung cấp đã có phiếu nhập nên không thể xóa.', 1;
+    DELETE FROM NhaCungCap WHERE MaNCC = @MaNCC;
+    IF @@ROWCOUNT = 0 THROW 50002, N'Không tìm thấy nhà cung cấp.', 1;
+END
+GO
+
+-- ---- HoaDon: đầu hóa đơn (dùng cho báo cáo in hóa đơn Crystal Report) ----
+CREATE OR ALTER PROCEDURE sp_HoaDon_GetById @MaHD VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT hd.MaHD, hd.NgayLap, nv.HoTen AS NhanVien, ISNULL(kh.HoTen, N'Khách lẻ') AS KhachHang,
+           hd.TongTien, hd.GiamGia, hd.ThanhToan, hd.GhiChu
+    FROM HoaDon hd
+    JOIN NhanVien nv ON nv.MaNV = hd.MaNV
+    LEFT JOIN KhachHang kh ON kh.MaKH = hd.MaKH
+    WHERE hd.MaHD = @MaHD;
 END
 GO
 

@@ -1,0 +1,117 @@
+<?xml version="1.0" standalone="yes"?>
+<BaoCao>
+  <xs:schema id="BaoCao" xmlns="" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xs:element name="BaoCao" msdata:IsDataSet="true" msdata:UseCurrentLocale="true">
+      <xs:complexType>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element name="DoanhThuThang">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="Thang" type="xs:int" minOccurs="0" />
+                <xs:element name="SoHoaDon" type="xs:int" minOccurs="0" />
+                <xs:element name="DoanhThu" type="xs:decimal" minOccurs="0" />
+                <xs:element name="LoiNhuan" type="xs:decimal" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="ThamSo">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="Ten" type="xs:string" minOccurs="0" />
+                <xs:element name="GiaTri" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+        </xs:choice>
+      </xs:complexType>
+    </xs:element>
+  </xs:schema>
+  <DoanhThuThang>
+    <Thang>1</Thang>
+    <SoHoaDon>6</SoHoaDon>
+    <DoanhThu>4350000</DoanhThu>
+    <LoiNhuan>1190000</LoiNhuan>
+  </DoanhThuThang>
+  <DoanhThuThang>
+    <Thang>2</Thang>
+    <SoHoaDon>7</SoHoaDon>
+    <DoanhThu>4700000</DoanhThu>
+    <LoiNhuan>1280000</LoiNhuan>
+  </DoanhThuThang>
+  <DoanhThuThang>
+    <Thang>3</Thang>
+    <SoHoaDon>8</SoHoaDon>
+    <DoanhThu>5050000</DoanhThu>
+    <LoiNhuan>1370000</LoiNhuan>
+  </DoanhThuThang>
+  <DoanhThuThang>
+    <Thang>4</Thang>
+    <SoHoaDon>5</SoHoaDon>
+    <DoanhThu>5400000</DoanhThu>
+    <LoiNhuan>1460000</LoiNhuan>
+  </DoanhThuThang>
+  <DoanhThuThang>
+    <Thang>5</Thang>
+    <SoHoaDon>6</SoHoaDon>
+    <DoanhThu>5750000</DoanhThu>
+    <LoiNhuan>1550000</LoiNhuan>
+  </DoanhThuThang>
+  <DoanhThuThang>
+    <Thang>6</Thang>
+    <SoHoaDon>7</SoHoaDon>
+    <DoanhThu>6100000</DoanhThu>
+    <LoiNhuan>1640000</LoiNhuan>
+  </DoanhThuThang>
+  <DoanhThuThang>
+    <Thang>7</Thang>
+    <SoHoaDon>8</SoHoaDon>
+    <DoanhThu>6450000</DoanhThu>
+    <LoiNhuan>1730000</LoiNhuan>
+  </DoanhThuThang>
+  <DoanhThuThang>
+    <Thang>8</Thang>
+    <SoHoaDon>5</SoHoaDon>
+    <DoanhThu>6800000</DoanhThu>
+    <LoiNhuan>1820000</LoiNhuan>
+  </DoanhThuThang>
+  <DoanhThuThang>
+    <Thang>9</Thang>
+    <SoHoaDon>6</SoHoaDon>
+    <DoanhThu>7150000</DoanhThu>
+    <LoiNhuan>1910000</LoiNhuan>
+  </DoanhThuThang>
+  <DoanhThuThang>
+    <Thang>10</Thang>
+    <SoHoaDon>7</SoHoaDon>
+    <DoanhThu>7500000</DoanhThu>
+    <LoiNhuan>2000000</LoiNhuan>
+  </DoanhThuThang>
+  <DoanhThuThang>
+    <Thang>11</Thang>
+    <SoHoaDon>0</SoHoaDon>
+    <DoanhThu>0</DoanhThu>
+    <LoiNhuan>0</LoiNhuan>
+  </DoanhThuThang>
+  <DoanhThuThang>
+    <Thang>12</Thang>
+    <SoHoaDon>0</SoHoaDon>
+    <DoanhThu>0</DoanhThu>
+    <LoiNhuan>0</LoiNhuan>
+  </DoanhThuThang>
+  <ThamSo>
+    <Ten>pTieuDe</Ten>
+    <GiaTri>BÁO CÁO DOANH THU THEO THÁNG</GiaTri>
+  </ThamSo>
+  <ThamSo>
+    <Ten>pNam</Ten>
+    <GiaTri>2026</GiaTri>
+  </ThamSo>
+  <ThamSo>
+    <Ten>pNguoiLap</Ten>
+    <GiaTri>Phan Văn Thắng</GiaTri>
+  </ThamSo>
+  <ThamSo>
+    <Ten>pNgayLap</Ten>
+    <GiaTri>20/11/2026 09:30</GiaTri>
+  </ThamSo>
+</BaoCao>

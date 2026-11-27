@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>disable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>QLCuaHangSach</RootNamespace>
+    <AssemblyName>QLCuaHangSach</AssemblyName>
+    <ApplicationHighDpiMode>DpiUnaware</ApplicationHighDpiMode>
+    <NoWarn>NU1701;CS0618;WFO1000;SYSLIB0014</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- GUI chỉ tham chiếu BUS (+DTO, Utils); GUI không gọi trực tiếp DAL -->
+    <ProjectReference Include="..\QLCuaHangSach.DTO\QLCuaHangSach.DTO.csproj" />
+    <ProjectReference Include="..\QLCuaHangSach.Utils\QLCuaHangSach.Utils.csproj" />
+    <ProjectReference Include="..\QLCuaHangSach.BUS\QLCuaHangSach.BUS.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="App.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
